@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lenhador Supremo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #2d5016, #4a7c23);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .main-game {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .current-area {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #90EE90;
+        }
+
+        .tree-container {
+            position: relative;
+            margin: 30px 0;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tree {
+            font-size: 8em;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        .tree:hover {
+            transform: scale(1.1);
+        }
+
+        .tree:active {
+            transform: scale(0.9);
+        }
+
+        .wood-particle {
+            position: absolute;
+            font-size: 1.5em;
+            pointer-events: none;
+            animation: woodFly 1s ease-out forwards;
+        }
+
+        @keyframes woodFly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
+        }
+
+        .cut-button {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .cut-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .section h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .axe-item, .area-item {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .axe-item.owned {
+            border-color: #90EE90;
+            background: rgba(144,238,144,0.1);
+        }
+
+        .axe-item.equipped {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.1);
+        }
+
+        .buy-button, .equip-button, .unlock-button {
+            background: linear-gradient(45deg, #2e8b57, #3cb371);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .buy-button:hover, .equip-button:hover, .unlock-button:hover {
+            background: linear-gradient(45deg, #3cb371, #2e8b57);
+            transform: translateY(-1px);
+        }
+
+        .buy-button:disabled, .equip-button:disabled, .unlock-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .area-item.unlocked {
+            border-color: #90EE90;
+            background: rgba(144,238,144,0.1);
+        }
+
+        .area-item.current {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.1);
+        }
+
+        .tutorial {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .tutorial-content {
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            text-align: center;
+            border: 2px solid #ffd700;
+        }
+
+        .tutorial h2 {
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        .tutorial p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .next-button {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: all 0.3s;
+        }
+
+        .next-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,215,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🪓 LENHADOR SUPREMO 🪓</h1>
+            <div class="stats">
+                <div class="stat-card">
+                    <div>Madeira</div>
+                    <div class="stat-value" id="wood">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>Dinheiro</div>
+                    <div class="stat-value" id="money">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div>Madeira/Clique</div>
+                    <div class="stat-value" id="woodPerClick">1</div>
+                </div>
+                <div class="stat-card">
+                    <div>Preço da Madeira</div>
+                    <div class="stat-value" id="woodPrice">$2</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="main-game">
+                <div class="current-area" id="currentArea">Floresta Inicial</div>
+                <div class="tree-container" id="treeContainer">
+                    <div class="tree" id="tree" onclick="cutWood()">🌲</div>
+                </div>
+                <button class="cut-button" onclick="cutWood()">Cortar Madeira!</button>
+                <div style="margin-top: 20px;">
+                    <button class="buy-button" onclick="sellWood()" id="sellButton">Vender Toda Madeira</button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="section">
+                    <h3>🪓 Machados</h3>
+                    <div id="axesList"></div>
+                </div>
+
+                <div class="section">
+                    <h3>🗺️ Áreas</h3>
+                    <div id="areasList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tutorial" id="tutorial">
+        <div class="tutorial-content">
+            <h2>🎯 Tutorial</h2>
+            <div id="tutorialContent">
+                <p><strong>Bem-vindo ao Lenhador Supremo!</strong></p>
+                <p>🌲 Clique na árvore ou no botão para cortar madeira</p>
+                <p>💰 Venda madeira para ganhar dinheiro</p>
+                <p>🪓 Compre machados melhores para cortar mais madeira</p>
+                <p>🗺️ Desbloqueie novas áreas com madeiras mais valiosas</p>
+                <p>Cada área tem árvores especiais e preços diferentes!</p>
+            </div>
+            <button class="next-button" onclick="closeTutorial()">Começar a Jogar!</button>
+        </div>
+    </div>
+
+    <script>
+        // Estado do jogo
+        let gameState = {
+            wood: 0,
+            money: 0,
+            woodPerClick: 1,
+            currentArea: 0,
+            equippedAxe: 0,
+            ownedAxes: [true, false, false, false, false],
+            unlockedAreas: [true, false, false, false, false]
+        };
+
+        // Definições dos machados
+        const axes = [
+            { name: "Machado de Pedra", power: 1, price: 0, description: "Machado básico" },
+            { name: "Machado de Ferro", power: 3, price: 50, description: "3x mais eficiente" },
+            { name: "Machado de Aço", power: 7, price: 200, description: "7x mais eficiente" },
+            { name: "Machado Élfico", power: 15, price: 800, description: "15x mais eficiente" },
+            { name: "Machado Lendário", power: 30, price: 3000, description: "30x mais eficiente" }
+        ];
+
+        // Definições das áreas
+        const areas = [
+            { name: "Floresta Inicial", tree: "🌲", price: 2, cost: 0, description: "Pinheiros comuns" },
+            { name: "Floresta Sombria", tree: "🌚", price: 5, cost: 100, description: "Madeira sombria valiosa" },
+            { name: "Floresta Tropical", tree: "🌴", price: 12, cost: 500, description: "Palmeiras exóticas" },
+            { name: "Floresta Mágica", tree: "✨", price: 25, cost: 2000, description: "Árvores encantadas" },
+            { name: "Floresta Celestial", tree: "🌟", price: 60, cost: 8000, description: "Madeira celestial rara" }
+        ];
+
+        function updateDisplay() {
+            document.getElementById('wood').textContent = Math.floor(gameState.wood);
+            document.getElementById('money').textContent = '$' + Math.floor(gameState.money);
+            document.getElementById('woodPerClick').textContent = gameState.woodPerClick;
+            document.getElementById('woodPrice').textContent = '$' + areas[gameState.currentArea].price;
+            document.getElementById('currentArea').textContent = areas[gameState.currentArea].name;
+            document.getElementById('tree').textContent = areas[gameState.currentArea].tree;
+            
+            updateAxesList();
+            updateAreasList();
+            updateSellButton();
+        }
+
+        function updateAxesList() {
+            const axesList = document.getElementById('axesList');
+            axesList.innerHTML = '';
+            
+            axes.forEach((axe, index) => {
+                const axeDiv = document.createElement('div');
+                axeDiv.className = 'axe-item';
+                
+                if (gameState.ownedAxes[index]) {
+                    axeDiv.classList.add('owned');
+                }
+                if (gameState.equippedAxe === index) {
+                    axeDiv.classList.add('equipped');
+                }
+                
+                axeDiv.innerHTML = `
+                    <div><strong>${axe.name}</strong></div>
+                    <div>${axe.description}</div>
+                    <div>Poder: ${axe.power}x</div>
+                    <div>Preço: $${axe.price}</div>
+                    ${gameState.ownedAxes[index] ? 
+                        (gameState.equippedAxe === index ? 
+                            '<button class="equip-button" disabled>Equipado</button>' :
+                            `<button class="equip-button" onclick="equipAxe(${index})">Equipar</button>`
+                        ) :
+                        `<button class="buy-button" onclick="buyAxe(${index})" ${gameState.money < axe.price ? 'disabled' : ''}>Comprar</button>`
+                    }
+                `;
+                
+                axesList.appendChild(axeDiv);
+            });
+        }
+
+        function updateAreasList() {
+            const areasList = document.getElementById('areasList');
+            areasList.innerHTML = '';
+            
+            areas.forEach((area, index) => {
+                const areaDiv = document.createElement('div');
+                areaDiv.className = 'area-item';
+                
+                if (gameState.unlockedAreas[index]) {
+                    areaDiv.classList.add('unlocked');
+                }
+                if (gameState.currentArea === index) {
+                    areaDiv.classList.add('current');
+                }
+                
+                areaDiv.innerHTML = `
+                    <div><strong>${area.name} ${area.tree}</strong></div>
+                    <div>${area.description}</div>
+                    <div>Preço da madeira: $${area.price}</div>
+                    <div>Custo: $${area.cost}</div>
+                    ${gameState.unlockedAreas[index] ? 
+                        (gameState.currentArea === index ? 
+                            '<button class="unlock-button" disabled>Área Atual</button>' :
+                            `<button class="unlock-button" onclick="selectArea(${index})">Ir para Área</button>`
+                        ) :
+                        `<button class="unlock-button" onclick="unlockArea(${index})" ${gameState.money < area.cost ? 'disabled' : ''}>Desbloquear</button>`
+                    }
+                `;
+                
+                areasList.appendChild(areaDiv);
+            });
+        }
+
+        function updateSellButton() {
+            const sellButton = document.getElementById('sellButton');
+            sellButton.disabled = gameState.wood === 0;
+            if (gameState.wood > 0) {
+                const totalValue = Math.floor(gameState.wood * areas[gameState.currentArea].price);
+                sellButton.textContent = `Vender Toda Madeira ($${totalValue})`;
+            } else {
+                sellButton.textContent = 'Vender Toda Madeira';
+            }
+        }
+
+        function cutWood() {
+            gameState.wood += gameState.woodPerClick;
+            
+            // Efeito visual de partículas
+            createWoodParticle();
+            
+            updateDisplay();
+        }
+
+        function createWoodParticle() {
+            const container = document.getElementById('treeContainer');
+            const particle = document.createElement('div');
+            particle.className = 'wood-particle';
+            particle.textContent = '🪵';
+            
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            particle.style.left = centerX + 'px';
+            particle.style.top = centerY + 'px';
+            
+            const dx = (Math.random() - 0.5) * 200;
+            const dy = (Math.random() - 0.5) * 200;
+            
+            particle.style.setProperty('--dx', dx + 'px');
+            particle.style.setProperty('--dy', dy + 'px');
+            
+            container.appendChild(particle);
+            
+            setTimeout(() => {
+                container.removeChild(particle);
+            }, 1000);
+        }
+
+        function sellWood() {
+            if (gameState.wood > 0) {
+                const earnings = Math.floor(gameState.wood * areas[gameState.currentArea].price);
+                gameState.money += earnings;
+                gameState.wood = 0;
+                updateDisplay();
+            }
+        }
+
+        function buyAxe(index) {
+            if (gameState.money >= axes[index].price && !gameState.ownedAxes[index]) {
+                gameState.money -= axes[index].price;
+                gameState.ownedAxes[index] = true;
+                updateDisplay();
+            }
+        }
+
+        function equipAxe(index) {
+            if (gameState.ownedAxes[index]) {
+                gameState.equippedAxe = index;
+                gameState.woodPerClick = axes[index].power;
+                updateDisplay();
+            }
+        }
+
+        function unlockArea(index) {
+            if (gameState.money >= areas[index].cost && !gameState.unlockedAreas[index]) {
+                gameState.money -= areas[index].cost;
+                gameState.unlockedAreas[index] = true;
+                updateDisplay();
+            }
+        }
+
+        function selectArea(index) {
+            if (gameState.unlockedAreas[index]) {
+                gameState.currentArea = index;
+                updateDisplay();
+            }
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial').style.display = 'none';
+        }
+
+        // Inicializar o jogo
+        updateDisplay();
+
+        // Teclas de atalho
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                cutWood();
+            }
+        });
+    </script>
+</body>
+</html>
